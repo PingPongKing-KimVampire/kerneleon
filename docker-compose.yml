@@ -1,0 +1,10 @@
+services:
+  image-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    container_name: image-builder
+    volumes:
+      - ./image:/workspace/image
+    working_dir: /workspace
