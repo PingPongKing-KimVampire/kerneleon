@@ -8,8 +8,8 @@ LD_SRC = ./kernel/linker.ld
 C_OBJS = $(C_SRCS:.c=.o)
 AS_OBJS = $(AS_SRCS:.s=.o)
 
-AS = i686-elf-as
-CC = i686-elf-gcc
+AS = i386-elf-as
+CC = i386-elf-gcc
 CFLAGS = -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
 LDFLAGS = -ffreestanding -O2 -nostdlib -lgcc
 
