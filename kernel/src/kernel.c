@@ -1,101 +1,82 @@
-#include <stdbool.h>
-#include <stddef.h>
+#include <stdio.h>
 #include <stdint.h>
-#include "strlen.h"
 
-#if defined(__linux__)
-#error "You are not using a cross-compiler, you will most certainly run into trouble"
-#endif
+// 세그먼트 디스크립터의 필드를 설정하기 위한 매크로들
+#define SEG_DESCTYPE(x)  ((x) << 0x04) // Descriptor type (0 for system, 1 for code/data)
+#define SEG_PRES(x)      ((x) << 0x07) // Present
+#define SEG_SAVL(x)      ((x) << 0x0C) // Available for system use
+#define SEG_LONG(x)      ((x) << 0x0D) // Long mode
+#define SEG_SIZE(x)      ((x) << 0x0E) // Size (0 for 16-bit, 1 for 32)
+#define SEG_GRAN(x)      ((x) << 0x0F) // Granularity (0 for 1B - 1MB, 1 for 4KB - 4GB)
+#define SEG_PRIV(x)     (((x) &  0x03) << 0x05)   // Set privilege level (0 - 3)
+ 
+// 세그먼트 타입 별 권한을 정의하는 상수들
+#define SEG_DATA_RD        0x00 // Read-Only
+#define SEG_DATA_RDA       0x01 // Read-Only, accessed
+#define SEG_DATA_RDWR      0x02 // Read/Write
+#define SEG_DATA_RDWRA     0x03 // Read/Write, accessed
+#define SEG_DATA_RDEXPD    0x04 // Read-Only, expand-down
+#define SEG_DATA_RDEXPDA   0x05 // Read-Only, expand-down, accessed
+#define SEG_DATA_RDWREXPD  0x06 // Read/Write, expand-down
+#define SEG_DATA_RDWREXPDA 0x07 // Read/Write, expand-down, accessed
+#define SEG_CODE_EX        0x08 // Execute-Only
+#define SEG_CODE_EXA       0x09 // Execute-Only, accessed
+#define SEG_CODE_EXRD      0x0A // Execute/Read
+#define SEG_CODE_EXRDA     0x0B // Execute/Read, accessed
+#define SEG_CODE_EXC       0x0C // Execute-Only, conforming
+#define SEG_CODE_EXCA      0x0D // Execute-Only, conforming, accessed
+#define SEG_CODE_EXRDC     0x0E // Execute/Read, conforming
+#define SEG_CODE_EXRDCA    0x0F // Execute/Read, conforming, accessed
+ 
+// 각 세그먼트에 대해 엔트리의 플래그나 속성을 설정하는 매크로
+#define GDT_CODE_PL0 SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) | \
+                     SEG_LONG(0)     | SEG_SIZE(1) | SEG_GRAN(1) | \
+                     SEG_PRIV(0)     | SEG_CODE_EXRD
+ 
+#define GDT_DATA_PL0 SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) | \
+                     SEG_LONG(0)     | SEG_SIZE(1) | SEG_GRAN(1) | \
+                     SEG_PRIV(0)     | SEG_DATA_RDWR
+ 
+#define GDT_CODE_PL3 SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) | \
+                     SEG_LONG(0)     | SEG_SIZE(1) | SEG_GRAN(1) | \
+                     SEG_PRIV(3)     | SEG_CODE_EXRD
+ 
+#define GDT_DATA_PL3 SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) | \
+                     SEG_LONG(0)     | SEG_SIZE(1) | SEG_GRAN(1) | \
+                     SEG_PRIV(3)     | SEG_DATA_RDWR
 
-#if !defined(__i386__)
-#error "This tutorial needs to be compiled with a ix86-elf compiler"
-#endif
-
-enum vga_color {
-	VGA_COLOR_BLACK = 0,
-	VGA_COLOR_BLUE = 1,
-	VGA_COLOR_GREEN = 2,
-	VGA_COLOR_CYAN = 3,
-	VGA_COLOR_RED = 4,
-	VGA_COLOR_MAGENTA = 5,
-	VGA_COLOR_BROWN = 6,
-	VGA_COLOR_LIGHT_GREY = 7,
-	VGA_COLOR_DARK_GREY = 8,
-	VGA_COLOR_LIGHT_BLUE = 9,
-	VGA_COLOR_LIGHT_GREEN = 10,
-	VGA_COLOR_LIGHT_CYAN = 11,
-	VGA_COLOR_LIGHT_RED = 12,
-	VGA_COLOR_LIGHT_MAGENTA = 13,
-	VGA_COLOR_LIGHT_BROWN = 14,
-	VGA_COLOR_WHITE = 15,
-};
-
-static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) 
+// 세그먼트 디스크립터 생성 함수
+// 세그먼트의 기본 정보 base, limit, flag 를 인자로 받음
+uint64_t create_descriptor(uint32_t base, uint32_t limit, uint16_t flag)
 {
-	return fg | bg << 4;
+    uint64_t descriptor; // 세그먼트 디스크립터를 저장할 변수
+ 
+    // 상위 32비트 생성
+    descriptor  =  limit       & 0x000F0000;         // set limit bits 19:16
+    descriptor |= (flag <<  8) & 0x00F0FF00;         // set type, p, dpl, s, g, d/b, l and avl fields
+    descriptor |= (base >> 16) & 0x000000FF;         // set base bits 23:16
+    descriptor |=  base        & 0xFF000000;         // set base bits 31:24
+ 
+    // 상위 32비트 완료 후, 하위 32비트로 이동
+    descriptor <<= 32;
+ 
+    // 하위 32비트 생성
+    descriptor |= base  << 16;                       // set base bits 15:0
+    descriptor |= limit  & 0x0000FFFF;               // set limit bits 15:0
+
+    return descriptor;
 }
 
-static inline uint16_t vga_entry(unsigned char uc, uint8_t color) 
-{
-	return (uint16_t) uc | (uint16_t) color << 8;
-}
-
-static const size_t VGA_WIDTH = 80;
-static const size_t VGA_HEIGHT = 25;
-
-size_t terminal_row;
-size_t terminal_column;
-uint8_t terminal_color;
-uint16_t* terminal_buffer;
-
-void terminal_initialize(void) 
-{
-	terminal_row = 0;
-	terminal_column = 0;
-	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-	terminal_buffer = (uint16_t*) 0xB8000;
-	for (size_t y = 0; y < VGA_HEIGHT; y++) {
-		for (size_t x = 0; x < VGA_WIDTH; x++) {
-			const size_t index = y * VGA_WIDTH + x;
-			terminal_buffer[index] = vga_entry(' ', terminal_color);
-		}
-	}
-}
-
-void terminal_setcolor(uint8_t color) 
-{
-	terminal_color = color;
-}
-
-void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) 
-{
-	const size_t index = y * VGA_WIDTH + x;
-	terminal_buffer[index] = vga_entry(c, color);
-}
-
-void terminal_putchar(char c) 
-{
-	terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
-	if (++terminal_column == VGA_WIDTH) {
-		terminal_column = 0;
-		if (++terminal_row == VGA_HEIGHT)
-			terminal_row = 0;
-	}
-}
-
-void terminal_write(const char* data, size_t size) 
-{
-	for (size_t i = 0; i < size; i++)
-		terminal_putchar(data[i]);
-}
-
-void terminal_writestring(const char* data) 
-{
-	terminal_write(data, strlen(data));
-}
 
 void kernel_main(void) 
 {
-	terminal_initialize();
-	terminal_writestring("42");
+    uint64_t gdt[10];
+
+    gdt[0] = create_descriptor(0, 0, 0); // 널 세그먼트 생성
+    gdt[1] = create_descriptor(0, 0x000FFFFF, (GDT_CODE_PL0)); // 커널 코드 세그먼트 생성
+    gdt[2] = create_descriptor(0, 0x000FFFFF, (GDT_DATA_PL0)); // 커널 데이터 세그먼트 생성
+    gdt[3] = create_descriptor(0, 0x000FFFFF, (GDT_CODE_PL3)); // 유저 코드 세그먼트 생성
+    gdt[4] = create_descriptor(0, 0x000FFFFF, (GDT_DATA_PL3)); // 유저 데이터 세그먼트 생성
+ 
+    return 0;
 }
