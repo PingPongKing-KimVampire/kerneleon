@@ -67,6 +67,7 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint16_t flag)
     return descriptor;
 }
 
+extern void setGdt(uint16_t limit, uint32_t base, uint32_t offset);
 
 void kernel_main(void) 
 {
@@ -78,5 +79,10 @@ void kernel_main(void)
     gdt[3] = create_descriptor(0, 0x000FFFFF, (GDT_CODE_PL3)); // 유저 코드 세그먼트 생성
     gdt[4] = create_descriptor(0, 0x000FFFFF, (GDT_DATA_PL3)); // 유저 데이터 세그먼트 생성
  
+    uint16_t limit  = 0x280;
+    uint32_t base   = 0x0;
+    uint32_t offset = &gdt;
+    setGdt(limit, base, offset);
+
     return 0;
 }
