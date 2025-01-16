@@ -1,5 +1,7 @@
-#include <stdio.h>
 #include <stdint.h>
+#include "print42.h"
+#include "print_stack.h"
+#include "gdt.h"
 
 // 세그먼트 디스크립터의 필드를 설정하기 위한 매크로들
 #define SEG_DESCTYPE(x)  ((x) << 0x04) // Descriptor type (0 for system, 1 for code/data)
@@ -67,7 +69,6 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint16_t flag)
     return descriptor;
 }
 
-extern void setGdt(uint16_t limit, uint32_t base, uint32_t offset);
 
 void kernel_main(void) 
 {
@@ -81,8 +82,8 @@ void kernel_main(void)
  
     uint16_t limit  = 0x280;
     uint32_t base   = 0x0;
-    uint32_t offset = &gdt;
+    uint32_t offset = (uint32_t)&gdt;
     setGdt(limit, base, offset);
-
-    return 0;
+	reloadSegments();
+	print_stack_trace_baby();
 }

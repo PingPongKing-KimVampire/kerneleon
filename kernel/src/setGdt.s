@@ -1,14 +1,16 @@
-section .text
-global setGdt
+.section .data
+gdtr:
+	.word 0
+	.long 0
 
-gdtr DW 0       ; Limit 저장용
-     DD 0       ; Base 저장용
+.section .text
+.global setGdt
 
 setGdt:
-   MOV   AX, [esp + 4]
-   MOV   [gdtr], AX
-   MOV   EAX, [ESP + 8]
-   ADD   EAX, [ESP + 12]
-   MOV   [gdtr + 2], EAX
-   LGDT  [gdtr]
-   RET
+   movw 4(%esp), %ax
+   movw %ax, gdtr
+   movl 8(%esp), %eax
+   addl 12(%esp), %eax
+   movl %eax, gdtr+2
+   lgdt gdtr
+   ret
