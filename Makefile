@@ -10,8 +10,8 @@ AS_OBJS = $(AS_SRCS:.s=.o)
 
 AS = i386-elf-as
 CC = i386-elf-gcc
-CFLAGS = -std=gnu99 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector
-LDFLAGS = -ffreestanding -O2 -nostdlib -lgcc
+CFLAGS = -std=gnu99 -ffreestanding -O0 -fno-omit-frame-pointer -fno-inline -Wall -Wextra -fno-stack-protector -mpreferred-stack-boundary=2 
+LDFLAGS = -ffreestanding -O0 -nostdlib -lgcc
 
 all : $(IMG_NAME)
 

@@ -11,7 +11,7 @@
 .long CHECKSUM
 
 .section .bss
-.align 16
+.align 4
 stack_bottom:
 .skip 16384 # 16 KiB
 stack_top:

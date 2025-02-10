@@ -130,3 +130,15 @@ void printk_dec(uint32_t value){
 	}
 	printk_dec_recursive(value);
 }
+
+void printk_byte_by_hex(uint8_t value) {
+	uint8_t prefix_value = value >> 4;
+	uint8_t suffix_value = value & 15;
+
+	char *hex_string = "0123456789ABCDEF";
+	char buffer[3];
+	buffer[2] = '\0';
+	buffer[0] = hex_string[prefix_value];
+	buffer[1] = hex_string[suffix_value];
+	printk(buffer);
+}

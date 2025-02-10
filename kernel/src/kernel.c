@@ -69,7 +69,6 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint16_t flag)
     return descriptor;
 }
 
-
 void kernel_main(void) 
 {
     uint64_t gdt[10];
@@ -85,5 +84,5 @@ void kernel_main(void)
     uint32_t offset = (uint32_t)&gdt;
     setGdt(limit, base, offset);
 	reloadSegments();
-	print_stack_trace_baby();
+	print_stack();
 }
