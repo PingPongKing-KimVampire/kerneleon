@@ -16,7 +16,7 @@ LDFLAGS = -ffreestanding -O0 -nostdlib -lgcc
 all : $(IMG_NAME)
 
 boot : $(IMG_NAME)
-	qemu-system-i386 -cdrom $(IMG_NAME)
+	qemu-system-i386 -m 4096M -cdrom $(IMG_NAME)
 
 bin : $(BIN_NAME)
 
