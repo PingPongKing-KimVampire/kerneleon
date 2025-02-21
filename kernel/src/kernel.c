@@ -78,36 +78,23 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint16_t flag)
     return descriptor;
 }
 
-uint32_t kernel_stack_top = 0x01000000;
-
 void kernel_main(void) 
 {
-    uint64_t gdt[7];
+    uint64_t *gdt = (uint64_t *)0x800;
 
     gdt[0] = create_descriptor(0, 0, 0); // 널 세그먼트 생성
-    gdt[1] = create_descriptor(0x00200000, 0x01000000, (GDT_CODE_PL0)); 
-	// gdt[1] = create_descriptor(0x00000000, 0x01200000, (GDT_CODE_PL0)); 
-    gdt[2] = create_descriptor(0x01200000, 0x01000000, (GDT_DATA_PL0)); 
-    gdt[3] = create_descriptor(0x02200000, 0x01000000, (GDT_STACK_PL0));
-    gdt[4] = create_descriptor(0x03200000, 0x01000000, (GDT_CODE_PL3)); 
-    gdt[5] = create_descriptor(0x04200000, 0x01000000, (GDT_DATA_PL3)); 
-    gdt[6] = create_descriptor(0x05200000, 0x01000000, (GDT_STACK_PL3));
+    gdt[1] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_CODE_PL0)); 
+    gdt[2] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_DATA_PL0)); 
+	gdt[3] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_STACK_PL0));
+    gdt[4] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_CODE_PL3)); 
+    gdt[5] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_DATA_PL3)); 
+    gdt[6] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_STACK_PL3));
  
     uint16_t limit  = 56;
-    uint32_t base   = (uint32_t)&gdt;
+    uint32_t base   = (uint32_t)gdt;
     uint32_t offset = 0;
 
     setGdt(limit, base, offset);
 	reloadSegments();
-
-	// printk("abc\n");
-	// __asm__ volatile (
-    //     "movl %0, %%esp\n\t"
-    //     "movl %0, %%ebp\n\t"
-    //     : /* 출력 없음 */
-    //     : "r" (kernel_stack_top)
-    // );
-	printk("dfg\n");
-
 	print_stack();
 }

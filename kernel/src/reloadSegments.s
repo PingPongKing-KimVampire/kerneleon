@@ -10,5 +10,6 @@ reloadSegments:
 	movw %ax, %es
 	movw %ax, %fs
 	movw %ax, %gs
+	movw $0x18, %ax
 	movw %ax, %ss
 	ret
