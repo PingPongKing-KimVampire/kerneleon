@@ -83,12 +83,12 @@ void kernel_main(void)
     uint64_t *gdt = (uint64_t *)0x800;
 
     gdt[0] = create_descriptor(0, 0, 0); // 널 세그먼트 생성
-    gdt[1] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_CODE_PL0)); 
-    gdt[2] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_DATA_PL0)); 
-	gdt[3] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_STACK_PL0));
-    gdt[4] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_CODE_PL3)); 
-    gdt[5] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_DATA_PL3)); 
-    gdt[6] = create_descriptor(0x00000000, 0x00FFFFFF, (GDT_STACK_PL3));
+    gdt[1] = create_descriptor(0x00000000, 0x000FFFFF, (GDT_CODE_PL0)); 
+    gdt[2] = create_descriptor(0x00000000, 0x000FFFFF, (GDT_DATA_PL0)); 
+	gdt[3] = create_descriptor(0x00000000, 0x000FFFFF, (GDT_STACK_PL0));
+    gdt[4] = create_descriptor(0x00000000, 0x000FFFFF, (GDT_CODE_PL3)); 
+    gdt[5] = create_descriptor(0x00000000, 0x000FFFFF, (GDT_DATA_PL3)); 
+    gdt[6] = create_descriptor(0x00000000, 0x000FFFFF, (GDT_STACK_PL3));
  
     uint16_t limit  = 56;
     uint32_t base   = (uint32_t)gdt;
